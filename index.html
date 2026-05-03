@@ -564,16 +564,76 @@
             }
         }
 
+        // ================= دالة إنشاء بصمة فريدة للجهاز =================
+        function getDeviceID() {
+            let deviceId = localStorage.getItem('hero_device_id');
+            if (!deviceId) {
+                deviceId = 'device_' + Math.random().toString(36).substr(2, 9) + Date.now().toString(36);
+                localStorage.setItem('hero_device_id', deviceId);
+            }
+            return deviceId;
+        }
+
+        // ================= دالة التحقق من الكود والجهاز =================
         function checkPassword() {
-            const pass = document.getElementById('pass-input').value;
+            const pass = document.getElementById('pass-input').value.trim();
+            if (pass === '') return;
+
+            const btn = document.querySelector('.pass-btn');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = currentLang === 'ar' ? '<span dir="ltr">⏳</span><span>جاري التحقق...</span>' : '<span dir="ltr">⏳</span><span>Checking...</span>';
+            btn.disabled = true;
+
+            // ===== ضع الرابط الجديد لجوجل شيت هنا =====
+            const scriptURL = 'https://script.google.com/macros/s/AKfycbzcVootWwcJxd5P-9dxFw8nh_cOv3zmeHTriZcYV8dR0TCQQMa_7ZQ_MDL0iUECons4/exec';
+            const deviceId = getDeviceID(); 
+            
+            // حماية مؤقتة لمنع توقف البرنامج إذا لم يتم وضع الرابط
+            if(scriptURL === 'ضع_رابط_تطبيق_الويب_هنا' && pass !== 'admin@math_2026') {
+                alert(currentLang === 'ar' ? 'يرجى وضع رابط جوجل شيت ليعمل نظام الأكواد.' : 'Please set the Google Sheets URL.');
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                return;
+            }
+
+            // كود الماستر الخاص بك للدخول دائماً والتجربة
             if (pass === 'admin@math_2026') {
                 document.getElementById('password-screen').style.opacity = '0';
                 setTimeout(() => {
                     document.getElementById('password-screen').style.display = 'none';
                 }, 500);
-            } else {
-                alert(currentLang === 'ar' ? 'كلمة المرور خاطئة!' : 'Incorrect Password!');
+                return;
             }
+
+            const checkURL = scriptURL + '?code=' + encodeURIComponent(pass) + '&device=' + encodeURIComponent(deviceId);
+
+            fetch(checkURL)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.valid) {
+                        document.getElementById('password-screen').style.opacity = '0';
+                        setTimeout(() => {
+                            document.getElementById('password-screen').style.display = 'none';
+                        }, 500);
+                    } else {
+                        let errorMsg = currentLang === 'ar' ? 'عفواً، الكود غير صحيح أو تم إيقافه!' : 'Invalid or deactivated code!';
+                        if (data.msg === 'used_on_another_device') {
+                            errorMsg = currentLang === 'ar' ? 'عفواً! هذا الكود مستخدم بالفعل على جهاز آخر 📱' : 'This code is already used on another device!';
+                        } else if (data.msg === 'deactivated') {
+                            errorMsg = currentLang === 'ar' ? 'عفواً! هذا الكود متوقف مؤقتاً من قبل المعلم ⛔' : 'This code is temporarily suspended ⛔';
+                        }
+                        
+                        alert(errorMsg);
+                        btn.innerHTML = originalText;
+                        btn.disabled = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert(currentLang === 'ar' ? 'تأكد من اتصالك بالإنترنت!' : 'Check your internet connection!');
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                });
         }
 
         window.addEventListener('DOMContentLoaded', () => {
@@ -596,7 +656,6 @@
             document.getElementById('quiz-result').style.display = 'none';
             document.getElementById('vis-result').style.display = 'none';
             
-            // تحديث رسالة الترحيب إذا كان الاسم مسجلاً
             let sName = document.getElementById('student-name').value.trim();
             if(sName) {
                 document.getElementById('hero-greeting').innerText = currentLang === 'ar' ? 'أهلاً بالبطل: ' + sName : 'Welcome Hero: ' + sName;
@@ -624,7 +683,6 @@
         let isAudioUnlocked = false;
         
         function startApp() { 
-            // قراءة اسم البطل وعرضه
             let sName = document.getElementById('student-name').value.trim();
             let greetingEl = document.getElementById('hero-greeting');
             if(sName) {
@@ -707,13 +765,10 @@
 
         // ================= دالة إرسال النتيجة لجوجل شيت =================
         function sendScoreToSheet(studentName, score) {
-            // ضع رابط الويب من جوجل شيت هنا بدلاً من الكلمة العربية
-            const scriptURL = 'ضع_رابط_تطبيق_الويب_هنا';
-            
-            // إذا لم يكتب الطالب اسمه
+            // ===== ضع الرابط الجديد لجوجل شيت هنا =====
+            const scriptURL = 'https://script.google.com/macros/s/AKfycbzcVootWwcJxd5P-9dxFw8nh_cOv3zmeHTriZcYV8dR0TCQQMa_7ZQ_MDL0iUECons4/exec';
             let finalName = studentName ? studentName : (currentLang === 'ar' ? 'بطل مجهول' : 'Unknown Hero');
 
-            // إذا كان الرابط الافتراضي موجوداً لا تقم بالإرسال لمنع الأخطاء في الكونسول
             if(scriptURL === 'ضع_رابط_تطبيق_الويب_هنا') {
                 console.log('يرجى وضع رابط جوجل شيت الصحيح لتعمل ميزة الإرسال.');
                 return;
