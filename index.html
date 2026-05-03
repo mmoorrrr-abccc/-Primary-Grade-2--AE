@@ -224,7 +224,7 @@
         .back-btn:hover { background: var(--main-gold); color: #0D1B4B; transform: translateY(-5px); }
         [dir="ltr"] .back-btn { left: auto; right: 15px; }
 
-        /* ================= حقل اسم الطالب (جديد ومحسن) ================= */
+        /* ================= حقل اسم الطالب ================= */
         .student-input {
             font-size: 28px; padding: 12px 25px; border-radius: 50px; border: 3px solid var(--main-gold);
             background: rgba(13, 27, 75, 0.8); color: #FFFFFF; font-family: 'Cairo', sans-serif; font-weight: 900;
@@ -703,6 +703,29 @@
             if(btnEl) btnEl.classList.add('active'); 
             else document.querySelectorAll('.nav-btn')[index-1].classList.add('active'); 
             manageTimer(index); 
+        }
+
+        // ================= دالة إرسال النتيجة لجوجل شيت =================
+        function sendScoreToSheet(studentName, score) {
+            // ضع رابط الويب من جوجل شيت هنا بدلاً من الكلمة العربية
+            const scriptURL = 'ضع_رابط_تطبيق_الويب_هنا';
+            
+            // إذا لم يكتب الطالب اسمه
+            let finalName = studentName ? studentName : (currentLang === 'ar' ? 'بطل مجهول' : 'Unknown Hero');
+
+            // إذا كان الرابط الافتراضي موجوداً لا تقم بالإرسال لمنع الأخطاء في الكونسول
+            if(scriptURL === 'ضع_رابط_تطبيق_الويب_هنا') {
+                console.log('يرجى وضع رابط جوجل شيت الصحيح لتعمل ميزة الإرسال.');
+                return;
+            }
+
+            fetch(scriptURL, {
+                method: 'POST',
+                body: JSON.stringify({ name: finalName, score: score }),
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+            })
+            .then(response => console.log('تم إرسال الدرجة لجوجل شيت بنجاح!'))
+            .catch(error => console.error('خطأ في إرسال الدرجة:', error));
         }
 
         function createQ(htmlVisual, qAr, qEn, ans, w1, w2, expAr, expEn) {
@@ -1350,6 +1373,10 @@
                 resBox.style.borderColor = isGoodScore ? '#00FF00' : '#FF4444';
                 resBox.innerHTML = `<img src="${finalImg}" class="feedback-img ${isGoodScore ? 'win' : ''}">${i18n.scorePre[currentLang]}<br><span style="font-size: 90px; display: block; margin: 20px 0; color: ${isGoodScore ? '#00FF00' : '#FF4444'}; font-family:'Cairo', sans-serif;">${h(score)} / ${h(total)}</span>${msg}`;
                 document.getElementById(ansBtnId).style.display = 'block'; window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+
+                // ===== إرسال النتيجة لجوجل شيت =====
+                let sName = document.getElementById('student-name').value.trim();
+                sendScoreToSheet(sName, score + " / " + total);
             });
         }
         function calcQuiz() { let score = 0; qQuiz.forEach((item, i) => { const sel = document.querySelector(`input[name="qz_${i}"]:checked`); if(sel && parseInt(sel.value) === item.correct) score++; }); processQuizScore(score, qQuiz.length, 'quiz-result', 'show-answers-btn'); }
